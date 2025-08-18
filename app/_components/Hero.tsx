@@ -45,18 +45,16 @@ function Hero() {
   };
 
   return (
-    <div className='mt-24 w-full flex justify-center'>
-      <div className='max-w-3xl w-full text-center space-y-6'>
-        <h1 className='text-xl md:text-5xl font-bold'>
-          Hey I'm your personal{" "}
-          <span className='text-primary'>Trip Planner</span>
+    <div className='mt-16 md:mt-24 w-full flex justify-center'>
+      <div className='max-w-3xl w-full text-center space-y-5'>
+        <h1 className='text-3xl md:text-5xl font-bold tracking-tight text-foreground'>
+          Your personal <span className='text-primary'>Trip Planner</span>
         </h1>
-        <p className='text-lg'>
-          Tell me what you want, and I'll handle the rest: Flights, Hotels,
-          Trip Planning — all in seconds.
+        <p className='text-base md:text-lg text-muted-foreground'>
+          Flights, stays, day plans — generated in seconds.
         </p>
         <div>
-          <div className='border rounded-2xl p-4 relative'>
+          <div className='border rounded-2xl p-4 relative bg-card/40'>
             <Textarea
               placeholder='Create a Trip to Paris from New York'
               className='w-full h-28 bg-transparent border-none focus-visible:ring-0 shadow-none resize-none'
@@ -64,18 +62,18 @@ function Hero() {
             <Button
               onClick={onSend}
               size={"icon"}
-              className='absolute bottom-6 right-6'
+              className='absolute bottom-6 right-6 shadow-md'
             >
               <Send className='h-4 w-4' />
             </Button>
           </div>
         </div>
 
-        <div className='flex gap-5'>
+        <div className='flex flex-wrap justify-center gap-3 md:gap-5'>
           {suggestions.map((suggestion, index) => (
             <div
               key={index}
-              className='flex gap-2 items-center border rounded-full p-2 cursor-pointer hover:bg-primary hover:text-white'
+              className='flex gap-2 items-center border rounded-full px-3 py-2 cursor-pointer hover:bg-primary hover:text-white transition-colors bg-card/40'
             >
               {suggestion.icon}
               <h2 className='text-sm'>{suggestion.title}</h2>

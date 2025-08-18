@@ -1,5 +1,7 @@
+'use client'
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import Header from './_components/Header';
+import Footer from './_components/Footer';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useUser } from '@clerk/nextjs';
@@ -31,9 +33,10 @@ function Provider({
 
   return (
     <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
-      <div>
+      <div className='min-h-dvh flex flex-col'>
         <Header />
-        {children}
+        <main className='flex-1'>{children}</main>
+        <Footer />
       </div>
     </UserDetailContext.Provider>
   );

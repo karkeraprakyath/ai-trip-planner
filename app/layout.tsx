@@ -1,7 +1,10 @@
+
+
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import Provider from "./Provider";
+import ThemeProvider from "./ThemeProvider";
 import { ClerkProvider } from "@clerk/nextjs";
 import ConvexClientProvider from "./ConvexClientProvider";
 
@@ -18,15 +21,17 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-    <html lang="en">
-      <body
-        className={outfit.className}
-      >
-        <ConvexClientProvider>
-          {children}
-        </ConvexClientProvider>
-      </body>
-    </html>
-   </ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className={outfit.className}>
+          <ConvexClientProvider>
+            <ThemeProvider>
+              <Provider>
+                {children}
+              </Provider>
+            </ThemeProvider>
+          </ConvexClientProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
