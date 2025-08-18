@@ -1,8 +1,8 @@
 "use client";
 import React, { useState } from "react";
-import Chatbox from "./Chatbox"
+import Chatbox from './Chatbox';
 import TripItinerary from "./TripItinerary";
-
+import Image from "next/image";
 interface TripPlan {
   trip_plan: {
     destination: string;
@@ -42,23 +42,30 @@ function CreateNewTrip() {
   const [showTrip, setShowTrip] = useState(false);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 p-10 h-[85vh]">
-      <div className="h-full">
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-5 p-6 md:p-10 h-[85vh]">
+      <div className="md:col-span-2 h-full">
         <Chatbox
+          itinerary={tripItinerary}
           setTripItinerary={setTripItinerary}
           setShowTrip={setShowTrip}
           showTrip={showTrip}
         />
       </div>
-      <div className="col-span-2 h-full">
+      <div className="md:col-span-3 h-full">
         {showTrip && tripItinerary ? (
           <TripItinerary
             itinerary={tripItinerary}
             onBack={() => setShowTrip(false)}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <p>No trip itinerary available. Generate a trip to view details.</p>
+          <div className="relative w-full h-full rounded-xl overflow-hidden">
+            <Image
+              src="https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg"
+              alt="Travel Planning"
+              fill
+              className="object-cover rounded-xl"
+              priority
+            />
           </div>
         )}
       </div>

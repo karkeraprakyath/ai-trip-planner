@@ -1,9 +1,4 @@
-// Fixed FinalUi.tsx
-// Changes:
-// - Added check for itinerary readiness.
-// - Improved button disabling logic.
-// - Added loading spinner if itinerary is null.
-// - Enhanced styling for better UX.
+
 
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +21,10 @@ function FinalUi({ viewTrip, itinerary }: FinalUiProps) {
       </p>
       <Button 
         disabled={!itinerary} 
-        onClick={viewTrip}
+        onClick={() => {
+          console.log("🔍 View Trip clicked, itinerary:", itinerary);
+          viewTrip();
+        }} 
         className="mt-4 w-full"
       >
         {itinerary ? "View Trip" : <Loader2 className="h-4 w-4 animate-spin" />}

@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { getUnsplashImage } from "@/app/api/unsplashlib/unsplash"; 
+import arcjet, { tokenBucket } from "@arcjet/next";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1", // Groq's OpenAI-compatible endpoint
   apiKey: process.env.GROQ_API_KEY, // Set this in .env.local
+});
+
+// Arcjet rate limiter: 1 trip generation per day for non-subscribers
+const aj = arcjet({
+  key: process.env.ARCJET_KEY!,
+  rules: [
+    tokenBucket({
+      mode: "LIVE",
+      characteristics: ["userId"],
+      refillRate: 1, // 1 token per interval
+      interval: 86400, // 1 day in seconds
+      capacity: 1, // max 1 token (one request)
+    }),
+  ],
 });
 
 // 🟢 Non-final: Collect trip details step-by-step
@@ -83,6 +100,66 @@ Rules:
 - No markdown, no explanations.
 `;
 
+
+async function enrichWithImages(tripPlan: any) {
+  if (!tripPlan || !tripPlan.trip_plan) return tripPlan;
+
+  // Enrich hotels with images
+  if (tripPlan.trip_plan.hotels) {
+    for (const hotel of tripPlan.trip_plan.hotels) {
+      if (!hotel.hotel_image_url || hotel.hotel_image_url.includes('example.com')) {
+        const imageUrl = await getUnsplashImage(`${hotel.hotel_name} hotel ${tripPlan.trip_plan.destination}`);
+        if (imageUrl) {
+          hotel.hotel_image_url = imageUrl;
+        }
+      }
+    }
+  }
+
+  // Enrich activities with images
+  if (tripPlan.trip_plan.itinerary) {
+    for (const day of tripPlan.trip_plan.itinerary) {
+      if (day.activities) {
+        for (const activity of day.activities) {
+          if (!activity.place_image_url || activity.place_image_url.includes('example.com')) {
+            const imageUrl = await getUnsplashImage(`${activity.place_name} ${tripPlan.trip_plan.destination}`);
+            if (imageUrl) {
+              activity.place_image_url = imageUrl;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return tripPlan;
+}
+
+async function generateTripChunk(messages: any[], systemPrompt: string, startDay: number, endDay: number) {
+  const modifiedMessages = messages.map(m => {
+    if (m.role === 'user' && m.content.includes('duration')) {
+      return {
+        ...m,
+        content: m.content + ` (Generating itinerary for days ${startDay} to ${endDay})`
+      };
+    }
+    return m;
+  });
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...modifiedMessages,
+    ],
+    temperature: 0.7,
+    max_tokens: 4000,
+  });
+
+  return response.choices[0]?.message?.content?.trim();
+}
+
+
 export async function POST(req: NextRequest) {
   try {
     const { messages, isFinal } = await req.json();
@@ -96,20 +173,78 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = isFinal ? FINAL_PROMPT : PROMPT;
 
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m: any) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
+    // Determine user plan via Clerk public metadata
+    const { userId } = await auth();
+    let isPremium = false;
+    if (userId) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        const publicMd = (user?.publicMetadata ?? {}) as Record<string, unknown>;
+        const subscription = (publicMd.subscription || publicMd.plan) as string | undefined;
+        if (subscription) {
+          const subLower = subscription.toString().toLowerCase();
+          isPremium = ["monthly", "pro", "premium", "paid"].includes(subLower);
+        }
+      } catch {}
+    }
 
-    const rawMessage = response.choices[0]?.message?.content?.trim();
+    // Apply rate limit only for non-subscribers when generating final trip
+    if (!isPremium && isFinal) {
+      const identity = userId || req.headers.get("x-forwarded-for") || "anonymous";
+      const decision = await aj.protect(req, { userId: identity, requested: 1 });
+      if (decision.isDenied()) {
+        return NextResponse.json(
+          { resp: "No Free Credit Remaining", ui: "limit" },
+          { status: 429 }
+        );
+      }
+    }
+    const tripDurationMatch = messages.find(m => 
+      m.role === 'user' && m.content.toLowerCase().includes('duration'))?.content.match(/\d+/);
+    const tripDuration = tripDurationMatch ? parseInt(tripDurationMatch[0]) : 0;
+
+    let rawMessage: string | undefined;
+
+    if (isFinal && tripDuration > 7) {
+      // Generate trip in chunks of 4 days
+      const chunks = [];
+      for (let i = 1; i <= tripDuration; i += 4) {
+        const endDay = Math.min(i + 3, tripDuration);
+        const chunkResponse = await generateTripChunk(messages, systemPrompt, i, endDay);
+        if (chunkResponse) {
+          const parsed = safeParseJSON(chunkResponse);
+          if (parsed?.trip_plan) {
+            chunks.push(parsed.trip_plan);
+          }
+        }
+      }
+
+      // Combine chunks
+      if (chunks.length > 0) {
+        const combinedPlan = {
+          ...chunks[0],
+          itinerary: chunks.flatMap(chunk => chunk.itinerary || [])
+        };
+        rawMessage = JSON.stringify({ trip_plan: combinedPlan });
+      }
+    } else {
+      // Handle normal cases
+      const response = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.map((m: any) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+      });
+      rawMessage = response.choices[0]?.message?.content?.trim();
+    }
+
     console.log("🧠 AI Raw Response:", rawMessage);
 
     if (!rawMessage) {

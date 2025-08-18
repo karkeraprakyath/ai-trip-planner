@@ -22,20 +22,24 @@ export const SelectBudgetOptions = [
     color: 'bg-purple-100 text-purple-600'
   }
 ]
-function BudgetUi({onSelectedOption}:any) {
+function BudgetUi({ onSelectedOption }: any) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 items-center mt-1">
-          {SelectBudgetOptions.map((item, index) => (
-            <div key={index} className="p-3 border rounded-2xl bg-white hover:border-primary cursor-pointer items-center text-center"
-            onClick={() => onSelectedOption(item.titles+" :"+item.desc)}>
-             <div className={`text-3xl p-3 rounded-full ${item.color}`}>
-{item.icon}</div>
-              <h2 className='text-lg font-semibold mt-2'>{item.titles}</h2>
-              <p className='text-sm text-gray-400'>{item.desc}</p>
-            </div>
-          ))}
-        </div>
-  );
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-stretch mt-1">
+      {SelectBudgetOptions.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          aria-label={`${item.titles} — ${item.desc}`}
+          onClick={() => onSelectedOption(item.titles + " :" + item.desc)}
+          className="group flex min-h-28 flex-col items-center justify-center rounded-xl border bg-card/60 p-4 text-center transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className={`mb-1 grid place-items-center rounded-full px-3 py-2 text-xl ${item.color}`}>{item.icon}</span>
+          <span className='mt-1 text-sm font-medium'>{item.titles}</span>
+          <span className='hidden md:block text-xs text-muted-foreground'>{item.desc}</span>
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export default BudgetUi
