@@ -57,7 +57,7 @@ const TripItinerary: React.FC<TripItineraryProps> = ({ itinerary, onBack }) => {
                     <div>
                       <h3 className="font-semibold">{hotel.hotel_name}</h3>
                       <p className="text-muted-foreground">{hotel.hotel_address}</p>
-                      <p className="text-green-600 font-medium">${hotel.price_per_night}</p>
+                      <p className="text-green-600 font-medium">{hotel.price_per_night}</p>
                       <p className="text-sm text-muted-foreground">Rating: {hotel.rating}/5</p>
                     </div>
                     <a

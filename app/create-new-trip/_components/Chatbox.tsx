@@ -167,7 +167,7 @@ function Chatbox({ itinerary, setTripItinerary, setShowTrip, showTrip }: Chatbox
         messages: payloadMessages,
         isFinal,
       });
-      // Handle daily limit exceeded from server
+     
       if (res.status === 429 || res.data?.ui === 'limit') {
         setMessages(prev => [
           ...prev,
@@ -176,7 +176,7 @@ function Chatbox({ itinerary, setTripItinerary, setShowTrip, showTrip }: Chatbox
         return res.data;
       }
       
-      // If this is the final response and we got a trip plan, save it
+    
       if (isFinal && res.data.trip_plan) {
         setTripItinerary(res.data);
         setShowTrip(true);
