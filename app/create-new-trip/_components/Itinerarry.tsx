@@ -211,7 +211,16 @@ function Itinerary({ tripData, onBack }: ItineraryProps) {
             ← Back to Chat
           </Button>
         )}
-        <Timeline data={data} />
+        <Timeline 
+          data={data} 
+          tripData={{
+            origin: tripData?.trip_plan?.origin || '',
+            destination: tripData?.trip_plan?.destination || '',
+            duration: tripData?.trip_plan?.duration || '',
+            budget: tripData?.trip_plan?.budget || '',
+            group_size: tripData?.trip_plan?.group_size || ''
+          }} 
+        />
       </div>
     </div>
   );

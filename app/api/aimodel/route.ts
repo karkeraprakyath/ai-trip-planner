@@ -4,7 +4,7 @@ import { getUnsplashImage } from "@/app/api/unsplashlib/unsplash";
 import arcjet, { tokenBucket } from "@arcjet/next";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
-export const groq = new OpenAI({
+ const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1", // Groq's OpenAI-compatible endpoint
   apiKey: process.env.GROQ_API_KEY, // Set this in .env.local
 });
@@ -18,7 +18,7 @@ const aj = arcjet({
       characteristics: ["userId"],
       refillRate: 1, // 1 token per interval
       interval: 86400, // 1 day in seconds
-      capacity: 1, // max 1 token (one request)
+      capacity: 10, // max 1 token (one request)
     }),
   ],
 });
